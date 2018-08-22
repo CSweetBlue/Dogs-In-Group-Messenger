@@ -19,6 +19,9 @@ const
   
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
+//When enabled, sends 5x reponse until disabled.
+let dogOverload = false;
+
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
 
@@ -96,19 +99,46 @@ function handleMessage(sender_psid, received_message) {
   let response;
   
   if (received_message.text) {
-    if (received_message.text == "dog"){
-      response = {
-        "text": 'Hello! Fetching dog image now.'
-      }
+    
+    //No caps on purpose.
+    if (received_message.text.includes(" dog ") ||
+        received_message.text.includes(" dog")  ||
+        received_message.text.includes("dog ")    ){
+      
+      response = {"text": "Hello! Fetching dog image now."}
+      
+    } else if (received_message.text == "Dog overload."){
+      
+      response = {"text": ""}
+      dogOverload = true;
+      
+    } else if (received_message.text == "Stop overload."){
+      
+      response = {"text": "Overload disabled."}
+      dogOverload = false;
+      
     } else {
-      response = {
-        "text": `Nope, wrong word. Try again. Just not: "${received_message.text}".`
-      }
+      response = {"text": "Nope, wrong keyword."}
     }
   }
   
   // Sends the response message.
-  callSendAPI(sender_psid, response);
+  if (dogOverload &&
+      response.text != "Nope, wrong keyword." &&
+      response.text != "") {
+    
+    for (let i = 0; i < 5; i++){
+      callSendAPI(sender_psid, response);
+    }
+    
+  } else {
+    callSendAPI(sender_psid, response);
+  }
+}
+
+// Handles messaging_postbacks events
+function handlePostback(sender_psid, received_postback) {
+
 }
 
 // Sends response messages via the Send API
@@ -120,7 +150,7 @@ function callSendAPI(sender_psid, response) {
     },
     "message": response
   }
-  
+
   request({
     "uri": "https://graph.facebook.com/v2.6/me/messages",
     "qs": { "access_token": PAGE_ACCESS_TOKEN },
@@ -133,5 +163,4 @@ function callSendAPI(sender_psid, response) {
       console.error("Unable to send message:" + err);
     }
   });
-  
 }
