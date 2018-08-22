@@ -136,13 +136,12 @@ function handleMessage(sender_psid, received_message) {
       
     } else if (received_message.text == "Stop overload."){
       
-      response = {"text": "Overload disabled."}
       dogOverload = false;
+      response = {"text": "Overload disabled."}
       callSendAPI(sender_psid, response);
       
     } else {
-      response = {"text": "Nope, wrong keyword."}
-      callSendAPI(sender_psid, response);
+
     }
   }
 }
