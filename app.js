@@ -15,6 +15,7 @@ const
   request = require('request'),
   express = require('express'),
   body_parser = require('body-parser'),
+  randomPuppy = require('random-puppy'),
   app = express().use(body_parser.json()); // creates express http server
   
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -103,42 +104,47 @@ function handleMessage(sender_psid, received_message) {
     //No caps on purpose.
     if (received_message.text.includes(" dog ") ||
         received_message.text.includes(" dog")  ||
-        received_message.text.includes("dog ")    ){
+        received_message.text.includes("dog ")  || 
+        received_message.text == ("dog")          ){
       
-      response = {"text": "Hello! Fetching dog image now."}
+      let sendCount = 1;
+      
+      if (dogOverload) {
+        sendCount = 5;
+      }
+      
+      for (let i = 0; i < sendCount; i++) {
+        randomPuppy().then(result => {
+
+          response = {
+            "attachment":{
+              "type":"image", 
+              "payload":{
+                "url":result, 
+                "is_reusable":true
+              }
+            }
+          }
+
+          callSendAPI(sender_psid, response);
+        });
+      }
       
     } else if (received_message.text == "Dog overload."){
       
-      response = {"text": ""}
       dogOverload = true;
       
     } else if (received_message.text == "Stop overload."){
       
       response = {"text": "Overload disabled."}
       dogOverload = false;
+      callSendAPI(sender_psid, response);
       
     } else {
       response = {"text": "Nope, wrong keyword."}
-    }
-  }
-  
-  // Sends the response message.
-  if (dogOverload &&
-      response.text != "Nope, wrong keyword." &&
-      response.text != "") {
-    
-    for (let i = 0; i < 5; i++){
       callSendAPI(sender_psid, response);
     }
-    
-  } else {
-    callSendAPI(sender_psid, response);
   }
-}
-
-// Handles messaging_postbacks events
-function handlePostback(sender_psid, received_postback) {
-
 }
 
 // Sends response messages via the Send API
@@ -150,7 +156,7 @@ function callSendAPI(sender_psid, response) {
     },
     "message": response
   }
-
+  
   request({
     "uri": "https://graph.facebook.com/v2.6/me/messages",
     "qs": { "access_token": PAGE_ACCESS_TOKEN },
